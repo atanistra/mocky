@@ -93,4 +93,4 @@ if __name__ == '__main__':
         api.add_resource(FileResource, resource, resource_class_kwargs={"responses_path": config.responses_dir,
                                                                         "endpoint_path": resource[1:]})
 
-        app.run(debug=True, host="0.0.0.0", port=config.mock_port)
+    app.run(debug=True, host="0.0.0.0", port=config.mock_port)
