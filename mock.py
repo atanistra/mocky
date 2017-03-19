@@ -12,6 +12,12 @@ ENDPOINT_NOT_ALLOWED_RESPONSE = {
 }
 
 
+def load_json(file_path):
+    with open(file_path) as f:
+        data = json.load(f)
+    return data
+
+
 class MethodFile(Enum):
     GET = "get.json"
     POST = "post.json"
@@ -34,33 +40,34 @@ class Config:
 
 
 class FileResource(Resource):
-    def __init__(self, responses_path):
+    def __init__(self, responses_path, endpoint_path):
         self._responses_path = responses_path
+        self._endpoint_path = endpoint_path
 
     def get(self):
         self._save_request(request)
-        response = self._get_response(MethodFile.GET.value)
+        response = self._get_response(MethodFile.GET)
         return response
 
     def post(self):
         self._save_request(request)
-        response = self._get_response(MethodFile.POST.value)
+        response = self._get_response(MethodFile.POST)
         return response
 
     def put(self):
         self._save_request(request)
-        response = self._get_response(MethodFile.POST.value)
+        response = self._get_response(MethodFile.PUT)
         return response
 
     def delete(self):
         self._save_request(request)
-        response = self._get_response(MethodFile.POST.value)
+        response = self._get_response(MethodFile.DELETE)
         return response
 
     def _get_response(self, file_name):
-        file_path = os.path.join(self._responses_path, file_name)
+        file_path = os.path.join(self._responses_path, self._endpoint_path, file_name.value)
         try:
-            response_data = self._load_response(file_path)
+            response_data = load_json(file_path)
         except IOError:
             response_data = ENDPOINT_NOT_ALLOWED_RESPONSE
         body = response_data.get('body')
@@ -72,33 +79,18 @@ class FileResource(Resource):
     def _save_request(self, request):
         pass
 
-    def _load_response(self, file_path):
-        with open(file_path) as f:
-            response = json.load(f)
-        return response
-
-
-class ResourceRegistrator:
-    def __init__(self, endpoints_configuration_file, responses_dir):
-        self._endpoints = endpoints_configuration_file
-        self._responses_dir = responses_dir
-
-    def register(self):
-        endpoints = self._read_endpoints_file()
-        for endpoint in endpoints:
-            responses_path = os.path.join(self._responses_dir, endpoint[1:])
-            api.add_resource(FileResource, endpoint, resource_class_kwargs={"responses_path": responses_path})
-
-    def _read_endpoints_file(self):
-        with open(self._endpoints) as f:
-            endpoints_data = json.load(f)
-        return endpoints_data
-
 
 if __name__ == '__main__':
+
     config = Config()
+
     app = Flask(__name__)
     api = Api(app)
-    rr = ResourceRegistrator(config.endpoints_file, config.responses_dir)
-    rr.register()
-    app.run(debug=True, host="0.0.0.0", port=config.mock_port)
+
+    resources = load_json(config.endpoints_file)
+
+    for resource in resources:
+        api.add_resource(FileResource, resource, resource_class_kwargs={"responses_path": config.responses_dir,
+                                                                        "endpoint_path": resource[1:]})
+
+        app.run(debug=True, host="0.0.0.0", port=config.mock_port)
