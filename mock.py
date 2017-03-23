@@ -45,22 +45,22 @@ class FileResource(Resource):
         self._endpoint_path = endpoint_path
 
     def get(self):
-        self._save_request(request)
+        self._save_request()
         response = self._get_response(MethodFile.GET)
         return response
 
     def post(self):
-        self._save_request(request)
+        self._save_request()
         response = self._get_response(MethodFile.POST)
         return response
 
     def put(self):
-        self._save_request(request)
+        self._save_request()
         response = self._get_response(MethodFile.PUT)
         return response
 
     def delete(self):
-        self._save_request(request)
+        self._save_request()
         response = self._get_response(MethodFile.DELETE)
         return response
 
@@ -76,8 +76,17 @@ class FileResource(Resource):
         response = Response(json.dumps(body), code, headers)
         return response
 
-    def _save_request(self, request):
-        pass
+    def _save_request(self):
+        request_id = request.headers.get('RequestID', 'last') + ".json"
+        request_path = os.path.join(self._responses_path, self._endpoint_path, request_id)
+        request_to_save = {
+            "headers": dict(request.headers),
+            "json": request.get_json(),
+            "data": request.get_data().decode(),
+            "params": request.args
+        }
+        with open(request_path, 'w') as f:
+            json.dump(request_to_save, f)
 
 
 if __name__ == '__main__':
