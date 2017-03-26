@@ -5,10 +5,10 @@ from flask_restful import Resource, Api
 import os
 import json
 
-ENDPOINT_NOT_ALLOWED_RESPONSE = {
-    "body": {"message": "Method not implemented"},
-    "headers": {"Content-Type": "application/json"},
-    "status": 405
+METHOD_NOT_ALLOWED_RESPONSE = {
+    'body': {'message': 'Method not implemented'},
+    'headers': {'Content-Type': 'application/json'},
+    'status': 405
 }
 
 
@@ -19,19 +19,19 @@ def load_json(file_path):
 
 
 class MethodFile(Enum):
-    GET = "get.json"
-    POST = "post.json"
-    PUT = "put.json"
-    DELETE = "delete.json"
+    GET = 'get.json'
+    POST = 'post.json'
+    PUT = 'put.json'
+    DELETE = 'delete.json'
 
 
 class Config:
     def __init__(self):
-        endpoints_file = os.getenv("MOCK_ENDPOINTS", "endpoints.json")
-        responses_dir = os.getenv("MOCK_RESPONSES_DIR", "responses")
+        endpoints_file = os.getenv('MOCK_ENDPOINTS', 'endpoints.json')
+        responses_dir = os.getenv('MOCK_RESPONSES_DIR', 'responses')
         self.endpoints_file = self._update_path(endpoints_file)
         self.responses_dir = self._update_path(responses_dir)
-        self.mock_port = int(os.getenv("MOCK_PORT", 8080))
+        self.mock_port = int(os.getenv('MOCK_PORT', 8080))
 
     @staticmethod
     def _update_path(path):
@@ -45,45 +45,45 @@ class FileResource(Resource):
         self._endpoint_path = endpoint_path
 
     def get(self):
-        self._save_request()
+        self._save_request(MethodFile.GET)
         response = self._get_response(MethodFile.GET)
         return response
 
     def post(self):
-        self._save_request()
+        self._save_request(MethodFile.POST)
         response = self._get_response(MethodFile.POST)
         return response
 
     def put(self):
-        self._save_request()
+        self._save_request(MethodFile.PUT)
         response = self._get_response(MethodFile.PUT)
         return response
 
     def delete(self):
-        self._save_request()
+        self._save_request(MethodFile.DELETE)
         response = self._get_response(MethodFile.DELETE)
         return response
 
-    def _get_response(self, file_name):
-        file_path = os.path.join(self._responses_path, self._endpoint_path, file_name.value)
+    def _get_response(self, method):
+        file_path = os.path.join(self._responses_path, self._endpoint_path, method.value)
         try:
             response_data = load_json(file_path)
         except IOError:
-            response_data = ENDPOINT_NOT_ALLOWED_RESPONSE
+            response_data = METHOD_NOT_ALLOWED_RESPONSE
         body = response_data.get('body')
         code = response_data.get('status')
         headers = response_data.get('headers')
         response = Response(json.dumps(body), code, headers)
         return response
 
-    def _save_request(self):
-        request_id = request.headers.get('RequestID', 'last') + ".json"
-        request_path = os.path.join(self._responses_path, self._endpoint_path, request_id)
+    def _save_request(self, method):
+        file_name = 'last_%s' % method.value
+        request_path = os.path.join(self._responses_path, self._endpoint_path, file_name)
         request_to_save = {
-            "headers": dict(request.headers),
-            "json": request.get_json(),
-            "data": request.get_data().decode(),
-            "params": request.args
+            'headers': dict(request.headers),
+            'json': request.get_json(),
+            'data': request.get_data().decode(),
+            'params': request.args
         }
         with open(request_path, 'w') as f:
             json.dump(request_to_save, f)
@@ -99,7 +99,7 @@ if __name__ == '__main__':
     resources = load_json(config.endpoints_file)
 
     for resource in resources:
-        api.add_resource(FileResource, resource, resource_class_kwargs={"responses_path": config.responses_dir,
-                                                                        "endpoint_path": resource[1:]})
+        api.add_resource(FileResource, resource, resource_class_kwargs={'responses_path': config.responses_dir,
+                                                                        'endpoint_path': resource[1:]})
 
-    app.run(debug=True, host="0.0.0.0", port=config.mock_port)
+    app.run(debug=True, host='0.0.0.0', port=config.mock_port)
