@@ -1,9 +1,9 @@
+import os
+import json
 from enum import Enum
 
 from flask import Flask, request, Response
 from flask_restful import Resource, Api
-import os
-import json
 
 METHOD_NOT_ALLOWED_RESPONSE = {
     'body': {'message': 'Method not implemented'},
@@ -18,6 +18,11 @@ def load_json(file_path):
     return data
 
 
+def save_json(file_path, data):
+    with open(file_path, 'w') as f:
+        json.dump(data, f)
+
+
 class MethodFile(Enum):
     GET = 'get.json'
     POST = 'post.json'
@@ -27,66 +32,77 @@ class MethodFile(Enum):
 
 class Config:
     def __init__(self):
-        endpoints_file = os.getenv('MOCK_ENDPOINTS', 'endpoints.json')
-        responses_dir = os.getenv('MOCK_RESPONSES_DIR', 'responses')
-        self.endpoints_file = self._update_path(endpoints_file)
-        self.responses_dir = self._update_path(responses_dir)
-        self.mock_port = int(os.getenv('MOCK_PORT', 8080))
+        mock_workdir = os.getenv('MOCK_WORKDIR')
+        mock_endpoints = os.getenv('MOCK_ENDPOINTS', 'endpoints.json')
+        responses_dir_name = os.getenv('MOCK_RESPONSES_DIR_NAME', 'responses')
 
-    @staticmethod
-    def _update_path(path):
-        work_dir = os.path.dirname(os.path.realpath(__file__))
-        return os.path.join(work_dir, path)
+        self.mock_port = int(os.getenv('MOCK_PORT', 8080))
+        self.endpoints_file = os.path.join(mock_workdir, mock_endpoints)
+        self.responses_dir = os.path.join(mock_workdir, responses_dir_name)
 
 
 class FileResource(Resource):
+    _response_file_path = None
+
     def __init__(self, responses_path, endpoint_path):
         self._responses_path = responses_path
         self._endpoint_path = endpoint_path
 
-    def get(self):
-        self._save_request(MethodFile.GET)
-        response = self._get_response(MethodFile.GET)
+    def get(self, **kwargs):
+        self._update_file_paths(MethodFile.GET, **kwargs)
+        self._save_request_data()
+        response = self._get_response()
         return response
 
-    def post(self):
-        self._save_request(MethodFile.POST)
-        response = self._get_response(MethodFile.POST)
+    def post(self, **kwargs):
+        self._update_file_paths(MethodFile.POST, **kwargs)
+        self._save_request_data()
+        response = self._get_response()
         return response
 
-    def put(self):
-        self._save_request(MethodFile.PUT)
-        response = self._get_response(MethodFile.PUT)
+    def put(self, **kwargs):
+        self._update_file_paths(MethodFile.PUT, **kwargs)
+        response = self._get_response()
         return response
 
-    def delete(self):
-        self._save_request(MethodFile.DELETE)
-        response = self._get_response(MethodFile.DELETE)
+    def delete(self, **kwargs):
+        self._update_file_paths(MethodFile.DELETE, **kwargs)
+        response = self._get_response()
         return response
 
-    def _get_response(self, method):
-        file_path = os.path.join(self._responses_path, self._endpoint_path, method.value)
+    def _save_request_data(self):
+        request_data = {
+            'headers': dict(request.headers),
+            'body': request.json if request.is_json else request.data.decode() or None,
+            'args': dict(request.args),
+            'endpoint': request.endpoint,
+            'method': request.method
+        }
+        save_json(self._request_file_path, request_data)
+
+    def _update_file_paths(self, method, **kwargs):
+        endpoint_path = self._endpoint_path
+
+        for key, value in kwargs.items():
+            path_key = '<%s>' % key
+            if key.startswith('__'):
+                endpoint_path = endpoint_path.replace(path_key, key)
+            else:
+                endpoint_path = endpoint_path.replace(path_key, value)
+
+        self._response_file_path = os.path.join(self._responses_path, endpoint_path, method.value)
+        self._request_file_path = os.path.join(self._responses_path, 'last_request.json')
+
+    def _get_response(self):
         try:
-            response_data = load_json(file_path)
+            response_data = load_json(self._response_file_path)
         except IOError:
             response_data = METHOD_NOT_ALLOWED_RESPONSE
         body = response_data.get('body')
-        code = response_data.get('status')
+        status_code = response_data.get('status_code')
         headers = response_data.get('headers')
-        response = Response(json.dumps(body), code, headers)
+        response = Response(json.dumps(body), status_code, headers)
         return response
-
-    def _save_request(self, method):
-        file_name = 'last_%s' % method.value
-        request_path = os.path.join(self._responses_path, self._endpoint_path, file_name)
-        request_to_save = {
-            'headers': dict(request.headers),
-            'json': request.get_json(),
-            'data': request.get_data().decode(),
-            'params': request.args
-        }
-        with open(request_path, 'w') as f:
-            json.dump(request_to_save, f)
 
 
 if __name__ == '__main__':
@@ -97,9 +113,9 @@ if __name__ == '__main__':
     api = Api(app)
 
     resources = load_json(config.endpoints_file)
-
     for resource in resources:
-        api.add_resource(FileResource, resource, resource_class_kwargs={'responses_path': config.responses_dir,
-                                                                        'endpoint_path': resource[1:]})
+        api.add_resource(FileResource, resource, endpoint=resource,
+                         resource_class_kwargs={'responses_path': config.responses_dir,
+                                                'endpoint_path': resource[1:]})
 
     app.run(debug=True, host='0.0.0.0', port=config.mock_port)
