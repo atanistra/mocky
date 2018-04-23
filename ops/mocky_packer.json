@@ -4,7 +4,8 @@
     "aws_registry": "{{env `DOCKER_REGISTRY`}}",
     "aws_access_key": "{{env `AWS_ACCESS_KEY_ID`}}",
     "aws_secret_key": "{{env `AWS_SECRET_ACCESS_KEY`}}",
-    "aws_profile": "{{env `AWS_PROFILE`}}"
+    "aws_profile": "{{env `AWS_PROFILE`}}",
+    "tag": "{{env `IMAGE_TAG`}}"
   },
   "builders": [
     {
@@ -47,7 +48,7 @@
     [
       {
         "type": "docker-tag",
-        "repository": "{{user `aws_registry`}}/aam_mocky",
+        "repository": "{{user `aws_registry`}}/{{user `tag`}}",
         "tag": "latest"
       },
       {

@@ -15,6 +15,7 @@ pipeline {
         AWS_SECRET_ACCESS_KEY = credentials('AAMDEV_AWS_SECRET_ACCESS_KEY')
         AWS_PROFILE = "aamdevelopment"
         DOCKER_REGISTRY = "${env.REPO_PREFIX}"
+        IMAGE_TAG = "${env.BRANCH_NAME}
     }
     stages {
         stage('Build docker image') {
