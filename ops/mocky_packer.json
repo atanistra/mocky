@@ -1,0 +1,62 @@
+{
+  "variables": {
+    "workspace_dir": "{{env `WORKSPACE_DIR`}}",
+    "aws_registry": "{{env `DOCKER_REGISTRY`}}",
+    "aws_access_key": "{{env `AWS_ACCESS_KEY_ID`}}",
+    "aws_secret_key": "{{env `AWS_SECRET_ACCESS_KEY`}}",
+    "aws_profile": "{{env `AWS_PROFILE`}}"
+  },
+  "builders": [
+    {
+      "type": "docker",
+      "image": "python:3.6",
+      "commit": true,
+      "changes": [
+        "LABEL maintainer=artsalliancemedia.com",
+        "ENV MOCK_WORKDIR=/mock",
+        "VOLUME /mock",
+        "WORKDIR /mock",
+        "ENTRYPOINT [\"/docker-entrypoint.sh\"]"
+      ]
+    }
+  ],
+  "provisioners": [
+    {
+      "type": "file",
+      "source": "{{user `workspace_dir`}}/mock.py",
+      "destination": "/"
+    },
+    {
+      "type": "file",
+      "source": "{{user `workspace_dir`}}/ops/docker-entrypoint.sh",
+      "destination": "/"
+    },
+    {
+      "type": "file",
+      "source": "{{user `workspace_dir`}}/requirements.txt",
+      "destination": "/tmp/"
+    },
+    {
+      "type": "shell",
+      "inline": [
+        "pip3 install --upgrade -r /tmp/requirements.txt"
+      ]
+    }
+  ],
+  "post-processors": [
+    [
+      {
+        "type": "docker-tag",
+        "repository": "{{user `aws_registry`}}/aam_mocky",
+        "tag": "latest"
+      },
+      {
+        "type": "docker-push",
+        "login": "true",
+        "aws_access_key": "{{user `aws_access_key`}}",
+        "aws_secret_key": "{{user `aws_secret_key`}}",
+        "aws_profile": "{{user `aws_secret_key`}}"
+      }
+    ]
+  ]
+}
