@@ -48,12 +48,11 @@
     [
       {
         "type": "docker-tag",
-        "repository": "{{user `aws_registry`}}/{{user `tag`}}",
-        "tag": "latest"
+        "repository": "{{user `aws_registry`}}/aam_mocky",
+        "tag": "{{user `tag`}}"
       },
       {
         "type": "docker-push",
-        "login": "true",
         "aws_access_key": "{{user `aws_access_key`}}",
         "aws_secret_key": "{{user `aws_secret_key`}}",
         "aws_profile": "{{user `aws_profile`}}"
