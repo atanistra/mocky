@@ -11,6 +11,14 @@ METHOD_NOT_ALLOWED_RESPONSE = {
     'status_code': 405
 }
 
+PREFLIGHT_RESPONSE = {
+    'headers': {'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Methods': 'POST, GET, PUT, DELETE, OPTIONS',
+                'Access-Control-Allow-Headers': '*',
+                'Access-Control-Max-Age': '86400'},
+    'status_code': 200
+}
+
 
 def load_json(file_path):
     with open(file_path) as f:
@@ -28,10 +36,12 @@ class MethodFile(Enum):
     POST = 'post.json'
     PUT = 'put.json'
     DELETE = 'delete.json'
+    OPTIONS = 'options.json'
 
 
 class Config:
     def __init__(self):
+        print(os.getcwd())
         mock_workdir = os.getenv('MOCK_WORKDIR')
         mock_endpoints = os.getenv('MOCK_ENDPOINTS', 'endpoints.json')
         responses_dir_name = os.getenv('MOCK_RESPONSES_DIR_NAME', 'responses')
@@ -43,44 +53,64 @@ class Config:
 
 class FileResource(Resource):
     _response_file_path = None
+    _request_data = None
+    _method = None
+    _method_file = None
 
     def __init__(self, responses_path, endpoint_path):
         self._responses_path = responses_path
         self._endpoint_path = endpoint_path
 
     def get(self, **kwargs):
-        self._update_file_paths(MethodFile.GET, **kwargs)
-        self._save_request_data()
+        self._process_request(**kwargs)
         response = self._get_response()
         return response
 
     def post(self, **kwargs):
-        self._update_file_paths(MethodFile.POST, **kwargs)
-        self._save_request_data()
+        self._process_request(**kwargs)
         response = self._get_response()
         return response
 
     def put(self, **kwargs):
-        self._update_file_paths(MethodFile.PUT, **kwargs)
+        self._process_request(**kwargs)
         response = self._get_response()
         return response
 
     def delete(self, **kwargs):
-        self._update_file_paths(MethodFile.DELETE, **kwargs)
+        self._process_request(**kwargs)
         response = self._get_response()
         return response
 
-    def _save_request_data(self):
+    def options(self, **kwargs):
+        self._process_request(**kwargs)
+        response = self._get_response()
+        return response
+
+    def _process_request(self, **kwargs):
+        self._method = request.method
+        self._method_file = MethodFile[self._method].value
+        self._extract_request_data()
+        self._update_file_paths(**kwargs)
+        self._log_request_data()
+        self._save_request_data()
+
+    def _extract_request_data(self):
         request_data = {
             'headers': dict(request.headers),
             'body': request.json if request.is_json else request.data.decode() or None,
             'args': dict(request.args),
             'endpoint': request.endpoint,
-            'method': request.method
+            'method': self._method
         }
-        save_json(self._request_file_path, request_data)
+        self._request_data = request_data
 
-    def _update_file_paths(self, method, **kwargs):
+    def _save_request_data(self):
+        save_json(self._request_file_path, self._request_data)
+
+    def _log_request_data(self):
+        app.logger.info("REQUEST: %s" % (self._request_data,))
+
+    def _update_file_paths(self, **kwargs):
         endpoint_path = self._endpoint_path
 
         for key, value in kwargs.items():
@@ -90,17 +120,21 @@ class FileResource(Resource):
             else:
                 endpoint_path = endpoint_path.replace(path_key, value)
 
-        self._response_file_path = os.path.join(self._responses_path, endpoint_path, method.value)
+        self._response_file_path = os.path.join(self._responses_path, endpoint_path, self._method_file)
         self._request_file_path = os.path.join(self._responses_path, 'last_request.json')
 
     def _get_response(self):
         try:
             response_data = load_json(self._response_file_path)
         except IOError:
-            response_data = METHOD_NOT_ALLOWED_RESPONSE
+            if self._method_file == MethodFile.OPTIONS.value:
+                response_data = PREFLIGHT_RESPONSE
+            else:
+                response_data = METHOD_NOT_ALLOWED_RESPONSE
         body = response_data.get('body')
         status_code = response_data.get('status_code')
         headers = response_data.get('headers')
+        app.logger.info("RESPONSE: %s" % (response_data,))
         response = Response(json.dumps(body), status_code, headers)
         return response
 
