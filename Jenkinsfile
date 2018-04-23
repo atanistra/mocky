@@ -14,7 +14,7 @@ pipeline {
         AWS_ACCESS_KEY_ID = credentials('AAMDEV_AWS_ACCESS_KEY_ID')
         AWS_SECRET_ACCESS_KEY = credentials('AAMDEV_AWS_SECRET_ACCESS_KEY')
         AWS_PROFILE = "aamdevelopment"
-        DOCKER_REGISTRY = "${env.REPO_PREFIX}"
+        DOCKER_REGISTRY = "${env.KDMTS_REGISTRY}"
         IMAGE_TAG = "${env.BRANCH_NAME}"
     }
     stages {
