@@ -8,7 +8,7 @@ from flask_restful import Resource, Api
 METHOD_NOT_ALLOWED_RESPONSE = {
     'body': {'message': 'Method not implemented'},
     'headers': {'Content-Type': 'application/json'},
-    'status': 405
+    'status_code': 405
 }
 
 
