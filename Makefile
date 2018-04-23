@@ -1,4 +1,5 @@
 export WORKSPACE_DIR:=$(shell pwd)
+export IMAGE_TAG?=dev
 
 PACKER?=packer.io
 
