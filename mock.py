@@ -54,6 +54,7 @@ class Config:
 class FileResource(Resource):
     _response_file_path = None
     _request_data = None
+    _response = None
     _method = None
     _method_file = None
 
@@ -62,29 +63,28 @@ class FileResource(Resource):
         self._endpoint_path = endpoint_path
 
     def get(self, **kwargs):
-        self._process_request(**kwargs)
-        response = self._get_response()
-        return response
+        self._process(**kwargs)
+        return self._response
 
     def post(self, **kwargs):
-        self._process_request(**kwargs)
-        response = self._get_response()
-        return response
+        self._process(**kwargs)
+        return self._response
 
     def put(self, **kwargs):
-        self._process_request(**kwargs)
-        response = self._get_response()
-        return response
+        self._process(**kwargs)
+        return self._response
 
     def delete(self, **kwargs):
-        self._process_request(**kwargs)
-        response = self._get_response()
-        return response
+        self._process(**kwargs)
+        return self._response
 
     def options(self, **kwargs):
+        self._process(**kwargs)
+        return self._response
+
+    def _process(self, **kwargs):
         self._process_request(**kwargs)
-        response = self._get_response()
-        return response
+        self._response = self._get_response()
 
     def _process_request(self, **kwargs):
         self._method = request.method
