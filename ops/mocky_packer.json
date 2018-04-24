@@ -12,6 +12,7 @@
       "changes": [
         "LABEL maintainer=artsalliancemedia.com",
         "ENV MOCK_WORKDIR=/mock",
+        "EXPOSE 8080",
         "VOLUME /mock",
         "WORKDIR /mock",
         "ENTRYPOINT [\"/docker-entrypoint.sh\"]"
