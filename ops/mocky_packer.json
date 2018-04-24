@@ -57,7 +57,7 @@
         "aws_access_key": "{{user `aws_access_key`}}",
         "aws_secret_key": "{{user `aws_secret_key`}}",
         "aws_profile": "{{user `aws_profile`}}",
-        "login_server": "https://{{user `aws_registry`}}/"
+        "login_server": "https://{{user `aws_registry`}}/aam_mocky"
       }
     ]
   ]
