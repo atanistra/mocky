@@ -2,9 +2,6 @@
   "variables": {
     "workspace_dir": "{{env `WORKSPACE_DIR`}}",
     "aws_registry": "{{env `KDMTS_REGISTRY`}}",
-    "aws_access_key": "{{env `AWS_ACCESS_KEY_ID`}}",
-    "aws_secret_key": "{{env `AWS_SECRET_ACCESS_KEY`}}",
-    "aws_profile": "{{env `AWS_PROFILE`}}",
     "tag": "{{env `IMAGE_TAG`}}"
   },
   "builders": [
@@ -53,10 +50,7 @@
       },
       {
         "type": "docker-push",
-        "ecr_login": true,
-        "aws_access_key": "{{user `aws_access_key`}}",
-        "aws_secret_key": "{{user `aws_secret_key`}}",
-        "aws_profile": "{{user `aws_profile`}}",
+        "ecr_login": false,
         "login_server": "https://{{user `aws_registry`}}/aam_mocky"
       }
     ]
