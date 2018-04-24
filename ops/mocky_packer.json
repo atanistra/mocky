@@ -15,7 +15,8 @@
         "EXPOSE 8080",
         "VOLUME /mock",
         "WORKDIR /mock",
-        "ENTRYPOINT [\"/docker-entrypoint.sh\"]"
+        "ENTRYPOINT [\"/docker-entrypoint.sh\"]",
+        "CMD [\"mock\"]"
       ]
     }
   ],
