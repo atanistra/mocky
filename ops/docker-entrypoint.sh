@@ -2,6 +2,8 @@
 
 set -ex
 
+export EXEC_USER_NAME=exec_user
+
 function add_exec_user() {
     if [ -z "${EXEC_USER_ID}" ]
     then
@@ -10,9 +12,9 @@ function add_exec_user() {
 
     if [ ${EXEC_USER_ID} == 0 ]
     then
-        useradd -m -o -g 0 -u ${EXEC_USER_ID} exec_user
+        useradd -m -o -g 0 -u ${EXEC_USER_ID} ${EXEC_USER_NAME}
     else
-        useradd -m -o -u ${EXEC_USER_ID} exec_user
+        useradd -m -o -u ${EXEC_USER_ID} ${EXEC_USER_NAME}
     fi
 }
 
