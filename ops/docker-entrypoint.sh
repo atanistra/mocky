@@ -4,6 +4,12 @@ set -ex
 
 export EXEC_USER_NAME=exec_user
 
+export MOCK_WORKDIR=${MOCK_WORKDIR:-/mock}
+export MOCK_RESPONSES_DIR_NAME=${MOCK_RESPONSES_DIR_NAME:-responses}
+
+
+echo ${MOCK_WORKDIR}/${MOCK_RESPONSES_DIR_NAME}
+
 function add_exec_user() {
     if [ -z "${EXEC_USER_ID}" ]
     then
@@ -18,10 +24,11 @@ function add_exec_user() {
     fi
 }
 
-id -u exec_user &> /dev/null || add_exec_user
+#id -u exec_user &> /dev/null || add_exec_user
 
 if [ "${1}" == "mock" ]
 then
+    su ${EXEC_USER_NAME} -c "mkdir -p ${MOCK_WORKDIR}/${MOCK_RESPONSES_DIR_NAME}"
     su ${EXEC_USER_NAME} -c "python3 /mock.py"
 else
     exec "$@"
