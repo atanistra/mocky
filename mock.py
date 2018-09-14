@@ -27,7 +27,7 @@ def load_json(file_path):
 
 
 def save_json(file_path, data):
-    with open(file_path, 'w') as f:
+    with open(file_path, 'x') as f:
         json.dump(data, f)
 
 
