@@ -108,7 +108,7 @@ class FileResource(Resource):
         try:
             save_json(self._request_file_path, self._request_data)
         except Exception as ex:
-            app.logger.error('Unable to save response:\nPath: %s\nResponse:\n%s\nException:\n%s\n%s ' % (
+            app.logger.error('Unable to save request:\nPath: %s\nResponse:\n%s\nException:\n%s\n%s ' % (
                 self._request_file_path, self._request_data, ex, sys.exc_info()[0]))
 
     def _log_request_data(self):
