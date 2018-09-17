@@ -132,25 +132,19 @@ class FileResource(Resource):
         self._request_file_path = os.path.join(self._responses_path, 'last_request.json')
 
     def _get_response(self):
-        try:
-            app.logger.info('Trying to load response from: %s' % (self._response_file_path,))
-            response_data = load_json(self._response_file_path)
-        except IOError:
-            app.logger.warn('Response not found!')
-            if self._method_file == MethodFile.OPTIONS.value:
-                response_data = PREFLIGHT_RESPONSE
-            else:
-                response_data = METHOD_NOT_ALLOWED_RESPONSE
         end = time.time() + self._timeout
+        app.logger.info('Trying to load response from: %s' % (self._response_file_path,))
         while True:
             try:
                 response_data = load_json(self._response_file_path)
                 break
             except IOError:
                 if self._method_file == MethodFile.OPTIONS.value:
+
                     response_data = PREFLIGHT_RESPONSE
                     break
                 elif time.time() > end:
+                    app.logger.warn('Response not found!')
                     response_data = METHOD_NOT_ALLOWED_RESPONSE
                     break
                 else:
