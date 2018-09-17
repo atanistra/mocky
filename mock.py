@@ -1,5 +1,6 @@
 import os
 import json
+import time
 from enum import Enum
 
 from flask import Flask, request, Response
@@ -43,12 +44,14 @@ class Config:
     def __init__(self):
         print(os.getcwd())
         mock_workdir = os.getenv('MOCK_WORKDIR')
+        timeout = os.getenv('MOCK_TIMEOUT', 0)
         mock_endpoints = os.getenv('MOCK_ENDPOINTS', 'endpoints.json')
         responses_dir_name = os.getenv('MOCK_RESPONSES_DIR_NAME', 'responses')
 
         self.mock_port = int(os.getenv('MOCK_PORT', 8080))
         self.endpoints_file = os.path.join(mock_workdir, mock_endpoints)
         self.responses_dir = os.path.join(mock_workdir, responses_dir_name)
+        self.timeout = int(timeout)
 
 
 class FileResource(Resource):
@@ -58,9 +61,10 @@ class FileResource(Resource):
     _method = None
     _method_file = None
 
-    def __init__(self, responses_path, endpoint_path):
+    def __init__(self, responses_path, endpoint_path, timeout):
         self._responses_path = responses_path
         self._endpoint_path = endpoint_path
+        self._timeout = timeout
 
     def get(self, **kwargs):
         self._process(**kwargs)
@@ -124,13 +128,21 @@ class FileResource(Resource):
         self._request_file_path = os.path.join(self._responses_path, 'last_request.json')
 
     def _get_response(self):
-        try:
-            response_data = load_json(self._response_file_path)
-        except IOError:
-            if self._method_file == MethodFile.OPTIONS.value:
-                response_data = PREFLIGHT_RESPONSE
-            else:
-                response_data = METHOD_NOT_ALLOWED_RESPONSE
+        end = time.time() + self._timeout
+        while True:
+            try:
+                response_data = load_json(self._response_file_path)
+                break
+            except IOError:
+                if self._method_file == MethodFile.OPTIONS.value:
+                    response_data = PREFLIGHT_RESPONSE
+                    break
+                elif time.time() > end:
+                    response_data = METHOD_NOT_ALLOWED_RESPONSE
+                    break
+                else:
+                    time.sleep(0.1)
+
         body = response_data.get('body')
         status_code = response_data.get('status_code')
         headers = response_data.get('headers')
@@ -150,6 +162,6 @@ if __name__ == '__main__':
     for resource in resources:
         api.add_resource(FileResource, resource, endpoint=resource,
                          resource_class_kwargs={'responses_path': config.responses_dir,
-                                                'endpoint_path': resource[1:]})
+                                                'endpoint_path': resource[1:], 'timeout': config.timeout})
 
     app.run(debug=True, host='0.0.0.0', port=config.mock_port)
