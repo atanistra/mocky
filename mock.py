@@ -1,6 +1,7 @@
 import os
 import json
 import time
+import sys
 from enum import Enum
 
 from flask import Flask, request, Response
@@ -42,7 +43,6 @@ class MethodFile(Enum):
 
 class Config:
     def __init__(self):
-        print(os.getcwd())
         mock_workdir = os.getenv('MOCK_WORKDIR')
         timeout = os.getenv('MOCK_TIMEOUT', 0)
         mock_endpoints = os.getenv('MOCK_ENDPOINTS', 'endpoints.json')
@@ -109,7 +109,11 @@ class FileResource(Resource):
         self._request_data = request_data
 
     def _save_request_data(self):
-        save_json(self._request_file_path, self._request_data)
+        try:
+            save_json(self._request_file_path, self._request_data)
+        except Exception as ex:
+            app.logger.error('Unable to save request:\nPath: %s\nResponse:\n%s\nException:\n%s\n%s ' % (
+                self._request_file_path, self._request_data, ex, sys.exc_info()[0]))
 
     def _log_request_data(self):
         app.logger.info("REQUEST: %s" % (self._request_data,))
@@ -128,6 +132,15 @@ class FileResource(Resource):
         self._request_file_path = os.path.join(self._responses_path, 'last_request.json')
 
     def _get_response(self):
+        try:
+            app.logger.info('Trying to load response from: %s' % (self._response_file_path,))
+            response_data = load_json(self._response_file_path)
+        except IOError:
+            app.logger.warn('Response not found!')
+            if self._method_file == MethodFile.OPTIONS.value:
+                response_data = PREFLIGHT_RESPONSE
+            else:
+                response_data = METHOD_NOT_ALLOWED_RESPONSE
         end = time.time() + self._timeout
         while True:
             try:
