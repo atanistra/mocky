@@ -39,6 +39,7 @@ class MethodFile(Enum):
     PUT = 'put.json'
     DELETE = 'delete.json'
     OPTIONS = 'options.json'
+    PATCH = 'patch.json'
 
 
 class Config:
@@ -83,6 +84,10 @@ class FileResource(Resource):
         return self._response
 
     def options(self, **kwargs):
+        self._process(**kwargs)
+        return self._response
+
+    def patch(self, **kwargs):
         self._process(**kwargs)
         return self._response
 
