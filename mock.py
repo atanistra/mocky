@@ -64,6 +64,8 @@ class FileResource(Resource):
 
     def __init__(self, responses_path, endpoint_path, timeout):
         self._responses_path = responses_path
+        self._last_request_file_path = os.path.join(self._responses_path, 'last_request.json')
+        self._all_requests_file_path = os.path.join(self._responses_path, 'all_request.json')
         self._endpoint_path = endpoint_path
         self._timeout = timeout
 
@@ -102,6 +104,7 @@ class FileResource(Resource):
         self._update_file_paths(**kwargs)
         self._log_request_data()
         self._save_request_data()
+        self._update_requests_log_file()
 
     def _extract_request_data(self):
         request_data = {
@@ -115,10 +118,24 @@ class FileResource(Resource):
 
     def _save_request_data(self):
         try:
-            save_json(self._request_file_path, self._request_data)
+            save_json(self._last_request_file_path, self._request_data)
         except Exception as ex:
             app.logger.error('Unable to save request:\nPath: %s\nResponse:\n%s\nException:\n%s\n%s ' % (
-                self._request_file_path, self._request_data, ex, sys.exc_info()[0]))
+                self._last_request_file_path, self._request_data, ex, sys.exc_info()[0]))
+
+    def _update_requests_log_file(self):
+        is_file = os.path.isfile(self._all_requests_file_path)
+
+        if is_file:
+            requests_log = load_json(self._all_requests_file_path)
+        else:
+            requests_log = []
+        requests_log.append(self._request_data)
+        try:
+            save_json(self._all_requests_file_path, requests_log)
+        except Exception as ex:
+            app.logger.error('Unable to save request:\nPath: %s\nResponse:\n%s\nException:\n%s\n%s ' % (
+                self._all_requests_file_path, requests_log, ex, sys.exc_info()[0]))
 
     def _log_request_data(self):
         app.logger.info("REQUEST: %s" % (self._request_data,))
@@ -134,7 +151,6 @@ class FileResource(Resource):
                 endpoint_path = endpoint_path.replace(path_key, value)
 
         self._response_file_path = os.path.join(self._responses_path, endpoint_path, self._method_file)
-        self._request_file_path = os.path.join(self._responses_path, 'last_request.json')
 
     def _get_response(self):
         end = time.time() + self._timeout
