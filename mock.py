@@ -65,7 +65,7 @@ class FileResource(Resource):
     def __init__(self, responses_path, endpoint_path, timeout):
         self._responses_path = responses_path
         self._last_request_file_path = os.path.join(self._responses_path, 'last_request.json')
-        self._all_requests_file_path = os.path.join(self._responses_path, 'all_request.json')
+        self._all_requests_file_path = os.path.join(self._responses_path, 'all_request.log')
         self._endpoint_path = endpoint_path
         self._timeout = timeout
 
@@ -124,18 +124,9 @@ class FileResource(Resource):
                 self._last_request_file_path, self._request_data, ex, sys.exc_info()[0]))
 
     def _update_requests_log_file(self):
-        is_file = os.path.isfile(self._all_requests_file_path)
-
-        if is_file:
-            requests_log = load_json(self._all_requests_file_path)
-        else:
-            requests_log = []
-        requests_log.append(self._request_data)
-        try:
-            save_json(self._all_requests_file_path, requests_log)
-        except Exception as ex:
-            app.logger.error('Unable to save request:\nPath: %s\nResponse:\n%s\nException:\n%s\n%s ' % (
-                self._all_requests_file_path, requests_log, ex, sys.exc_info()[0]))
+        dumped_requests = json.dumps(self._request_data)
+        with open(self._all_requests_file_path, 'a+') as f:
+            f.writelines(f'{dumped_requests}\n')
 
     def _log_request_data(self):
         app.logger.info("REQUEST: %s" % (self._request_data,))
