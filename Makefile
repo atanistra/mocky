@@ -1,5 +1,7 @@
 export WORKSPACE_DIR:=$(shell pwd)
 export IMAGE_TAG?=dev
+export MOCK_VERSION?=unversioned
+export DOCKER_REGISTRY?=local
 
 PACKER?=packer.io
 

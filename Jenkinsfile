@@ -11,6 +11,7 @@ pipeline {
         timeout(time: 30, unit: 'MINUTES')
     }
     environment {
+        MOCK_VERSION = "${env.BRANCH_NAME}.b${env.BUILD_NUMBER}.${GIT_COMMIT[0..6]}"
         AWS_ACCESS_KEY_ID = credentials('AAMDEV_AWS_ACCESS_KEY_ID')
         AWS_SECRET_ACCESS_KEY = credentials('AAMDEV_AWS_SECRET_ACCESS_KEY')
         AWS_PROFILE = "aamdevelopment"
