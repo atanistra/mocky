@@ -2,6 +2,7 @@ import os
 import json
 import time
 import sys
+from base64 import b64decode
 from enum import Enum
 
 from flask import Flask, request, Response
@@ -166,7 +167,13 @@ class FileResource(Resource):
         status_code = response_data.get('status_code')
         headers = response_data.get('headers')
         app.logger.info("RESPONSE: %s" % (response_data,))
-        response = Response(json.dumps(body), status_code, headers)
+        if headers and headers.get('Content-Type') == 'application/json':
+            body = json.dumps(body)
+        if headers and headers.get('Content-Type').startswith('image'):
+            body = b64decode(body.encode())
+        else:
+            body = body.encode()
+        response = Response(body, status_code, headers)
         return response
 
 
