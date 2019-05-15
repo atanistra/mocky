@@ -1,0 +1,8 @@
+[
+  "/hello",
+  "/hello/<name>",
+  "/hello/world/<__world_number__>"
+]
+
+	
+
